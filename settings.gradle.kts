@@ -1,1 +1,1 @@
-rootProject.name = "YouJetbrainSearch"
+rootProject.name = "YouIDESearch"

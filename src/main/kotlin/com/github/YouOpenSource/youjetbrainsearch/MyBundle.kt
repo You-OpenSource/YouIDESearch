@@ -1,4 +1,4 @@
-package com.github.siilats.youjetbrainsearch
+package com.github.youopensource.youjetbrainsearch
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls

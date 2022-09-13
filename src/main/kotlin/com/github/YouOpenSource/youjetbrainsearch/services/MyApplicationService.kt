@@ -1,6 +1,6 @@
-package com.github.siilats.youjetbrainsearch.services
+package com.github.youopensource.youjetbrainsearch.services
 
-import com.github.siilats.youjetbrainsearch.MyBundle
+import com.github.youopensource.youjetbrainsearch.MyBundle
 
 class MyApplicationService {
 

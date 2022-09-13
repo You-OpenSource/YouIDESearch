@@ -1,9 +1,9 @@
-package com.github.siilats.youjetbrainsearch.listeners
+package com.github.youopensource.youjetbrainsearch.listeners
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
-import com.github.siilats.youjetbrainsearch.services.MyProjectService
+import com.github.youopensource.youjetbrainsearch.services.MyProjectService
 
 internal class MyProjectManagerListener : ProjectManagerListener {
 
