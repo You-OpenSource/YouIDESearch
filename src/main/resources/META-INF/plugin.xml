@@ -7,7 +7,8 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.youopensource.youjetbrainsearch.services.MyApplicationService"/>
+        <applicationService
+                serviceImplementation="com.github.youopensource.youjetbrainsearch.services.MyApplicationService"/>
         <projectService serviceImplementation="com.github.youopensource.youjetbrainsearch.services.MyProjectService"/>
     </extensions>
 
@@ -15,4 +16,9 @@
         <listener class="com.github.youopensource.youjetbrainsearch.listeners.MyProjectManagerListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </applicationListeners>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="You.com" secondary="true" icon="AllIcons.General.Modified" anchor="right"
+                    factoryClass="com.github.youopensource.youjetbrainsearch.screen.SideSuggestionViewFactory"/>
+    </extensions>
 </idea-plugin>
