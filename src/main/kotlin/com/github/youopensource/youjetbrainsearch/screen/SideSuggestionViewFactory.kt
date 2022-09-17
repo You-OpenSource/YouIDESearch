@@ -1,12 +1,18 @@
 package com.github.youopensource.youjetbrainsearch.screen
 
+import com.github.youopensource.youjetbrainsearch.events.DocumentChangedEvent
+import com.github.youopensource.youjetbrainsearch.services.MyProjectService
+import com.intellij.application.subscribe
 import com.intellij.json.JsonFileType
 import com.intellij.json.JsonLanguage
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.EditorSettings
 import com.intellij.openapi.editor.actions.IncrementalFindAction
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -16,17 +22,19 @@ import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.ui.JBUI
 import org.jetbrains.annotations.NotNull
 
-class SideSuggestionViewFactory : ToolWindowFactory {
+class SideSuggestionViewFactory : ToolWindowFactory, Disposable {
 
     private val allButtons: ArrayList<SmallButton> = arrayListOf();
     private val allEditors: ArrayList<EditorTextField> = arrayListOf();
     private var dataProviderPanel: DataProviderPanel? = null
     private var project: Project? = null
+    private var lastChange: DocumentEvent? = null
 
     /**
      * Create the tool window content.
@@ -43,14 +51,27 @@ class SideSuggestionViewFactory : ToolWindowFactory {
             setFocusCycleRoot(true)
             setBorder(JBUI.Borders.empty(5, 10, 10, 15))
         }
+        dataProviderPanel!!.add(
+            JBLabel("Loading...")
+        )
 
         val jbScrollPane = JBScrollPane(dataProviderPanel, 20, 31);
         val content = contentFactory.createContent(jbScrollPane, "", false)
         toolWindow.contentManager.addContent(content)
-        onSuggestion()
+        val service = project.service<MyProjectService>()
+        service.documentChangeTopic.subscribe(this, object : DocumentChangedEvent {
+            override fun onDocumentChange(event: DocumentEvent) {
+                if (lastChange == null) {
+                    lastChange = event
+                } else {
+                    onSuggestion()
+                }
+            }
+        })
     }
 
     private fun onSuggestion() {
+        dataProviderPanel!!.removeAll()
         listOf(
             "import pandas as pd",
             "import postgresql",
@@ -131,5 +152,9 @@ class SideSuggestionViewFactory : ToolWindowFactory {
             )
         )!!.document
         return editorField
+    }
+
+    override fun dispose() {
+
     }
 }
