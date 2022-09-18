@@ -1,46 +1,53 @@
 package com.github.youopensource.youjetbrainsearch.services
 
 import com.github.youopensource.youjetbrainsearch.MyBundle
+import com.github.youopensource.youjetbrainsearch.data.SolutionRequest
 import com.github.youopensource.youjetbrainsearch.events.DocumentChangedEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.EditorFactory
-import com.intellij.openapi.editor.event.DocumentEvent
-import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.EditorKind
+import com.intellij.openapi.editor.event.CaretEvent
+import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.wm.ToolWindowFactoryEx
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.util.messages.Topic
 import io.reactivex.rxjava3.processors.BehaviorProcessor
-import org.jetbrains.annotations.NotNull
-import java.awt.EventQueue
 import java.util.concurrent.TimeUnit
 
 class MyProjectService(project: Project) {
     val documentChangeTopic: Topic<DocumentChangedEvent> =
         Topic.create("youcom.documentChanged", DocumentChangedEvent::class.java)
-    val publisher: BehaviorProcessor<DocumentEvent> = BehaviorProcessor.create()
+    val publisher: BehaviorProcessor<CaretEvent> = BehaviorProcessor.create()
 
     init {
         println(MyBundle.message("projectService", project.name))
 
-        publisher.debounce(3, TimeUnit.SECONDS).subscribe {
+        publisher.debounce(1, TimeUnit.SECONDS).subscribe {
             ApplicationManager.getApplication().invokeLater {
                 ApplicationManager.getApplication().messageBus.syncPublisher(documentChangeTopic)
                     .onDocumentChange(it)
             }
         }
 
-        EditorFactory.getInstance().eventMulticaster.addDocumentListener(object : DocumentListener {
-            override fun documentChanged(@NotNull event: DocumentEvent) {
-                // TODO send proper event
+        EditorFactory.getInstance().eventMulticaster.addCaretListener(object : CaretListener {
+            override fun caretPositionChanged(event: CaretEvent) {
+                val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("You.com")
+                val editor = event.editor
+                if (toolWindow?.isVisible == false || editor.editorKind != EditorKind.MAIN_EDITOR) {
+                    return
+                }
+                val line = event.caret!!.visualPosition.line
+                val start = editor.document.getLineStartOffset(line)
+                val end = editor.document.getLineEndOffset(line)
+                val text = editor.document.getText(TextRange.create(start, end))
+                ApiService.getRequestPublisher().onNext(
+                    SolutionRequest(
+                        text
+                    )
+                )
                 publisher.onNext(event)
-//                val document: Document = event.document
-//                val file = FileDocumentManager.getInstance().getFile(document)
-//                val offset: Int = event.offset
-//                val newLength: Int = event.newLength
-//
-//                // actual logic depends on which line we want to call 'changed' when '\n' is inserted
-//                val firstLine: Int = document.getLineNumber(offset)
-//                val lastLine = if (newLength == 0) firstLine else document.getLineNumber(offset + newLength - 1)
-
             }
         }) { }
 

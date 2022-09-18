@@ -1,13 +1,13 @@
 package com.github.youopensource.youjetbrainsearch.screen
 
-import com.github.youopensource.youjetbrainsearch.events.DocumentChangedEvent
-import com.github.youopensource.youjetbrainsearch.services.MyProjectService
-import com.intellij.application.subscribe
+import com.github.youopensource.youjetbrainsearch.data.Solution
+import com.github.youopensource.youjetbrainsearch.services.ApiService
 import com.intellij.json.JsonFileType
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.EditorSettings
 import com.intellij.openapi.editor.actions.IncrementalFindAction
 import com.intellij.openapi.editor.colors.EditorColors
@@ -26,9 +26,8 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.ui.JBUI
-import org.jetbrains.annotations.NotNull
 
-class SideSuggestionViewFactory : ToolWindowFactory, Disposable {
+class SideSuggestionViewFactory : ToolWindowFactory {
 
     private val allButtons: ArrayList<SmallButton> = arrayListOf();
     private val allEditors: ArrayList<EditorTextField> = arrayListOf();
@@ -43,6 +42,7 @@ class SideSuggestionViewFactory : ToolWindowFactory, Disposable {
      * @param toolWindow current tool window
      */
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        println("${toolWindow.id} is this id");
         this.project = project
 
         val contentFactory = ContentFactory.SERVICE.getInstance()
@@ -58,35 +58,35 @@ class SideSuggestionViewFactory : ToolWindowFactory, Disposable {
         val jbScrollPane = JBScrollPane(dataProviderPanel, 20, 31);
         val content = contentFactory.createContent(jbScrollPane, "", false)
         toolWindow.contentManager.addContent(content)
-        val service = project.service<MyProjectService>()
-        service.documentChangeTopic.subscribe(this, object : DocumentChangedEvent {
-            override fun onDocumentChange(event: DocumentEvent) {
-                if (lastChange == null) {
-                    lastChange = event
+//        val service = project.service<MyProjectService>()
+        val disposable = ApiService.getSolutionObservable().subscribe {
+            if (!toolWindow.isVisible) {
+
+            }
+            ApplicationManager.getApplication().invokeLater {
+                if (!it.loading) {
+                    onSuggestion(it.solutions!!)
                 } else {
-                    onSuggestion()
+                    println("Loading...")
                 }
             }
-        })
+        }
+//        service.documentChangeTopic.subscribe(this, object : DocumentChangedEvent {
+//            override fun onDocumentChange(event: CaretEvent) {
+////                if (lastChange == null) {
+////                } else {
+//                    onSuggestion(event)
+////                }
+//            }
+//        })
     }
 
-    private fun onSuggestion() {
+    private fun onSuggestion(solutionList: List<Solution>) {
         dataProviderPanel!!.removeAll()
-        listOf(
-            "import pandas as pd",
-            "import postgresql",
-            "import pandas as pd\ndf = pd.read_csv('file_name')\ndf['key3'] = df['key1']+df['key3']",
-            "import pandas as pd",
-            "import postgresql",
-            "import pandas as pd\ndf = pd.read_csv('file_name')\ndf['key3'] = df['key1']+df['key3']",
-            "import pandas as pd",
-            "import postgresql",
-            "import pandas as pd\ndf = pd.read_csv('file_name')\ndf['key3'] = df['key1']+df['key3']",
-            "import pandas as pd",
-            "import postgresql",
-            "import pandas as pd\ndf = pd.read_csv('file_name')\ndf['key3'] = df['key1']+df['key3']",
-        ).map { text ->
-            val elements = createCodeSuggestionView(project!!, text)
+        allButtons.clear()
+        allEditors.clear()
+        solutionList.map { solution ->
+            val elements = createCodeSuggestionView(project!!, solution)
             allButtons.add(elements.first.apply {
                 addActionListener {
                     WriteCommandAction.runWriteCommandAction(
@@ -96,7 +96,7 @@ class SideSuggestionViewFactory : ToolWindowFactory, Disposable {
                         val editor = FileEditorManager.getInstance(project!!).selectedTextEditor!!
                         val document = editor.document
                         document.deleteString(0, document.textLength)
-                        document.insertString(0, text)
+                        document.insertString(0, solution.codeSnipped!!)
                     }
                 }
 
@@ -112,13 +112,13 @@ class SideSuggestionViewFactory : ToolWindowFactory, Disposable {
     }
 
 
-    private fun createCodeSuggestionView(project: Project, text: String): Pair<SmallButton, EditorTextField> {
-        val smallButton = SmallButton("Try Solution 1")
-        val editorTextField = editorTextField(project, text)
+    private fun createCodeSuggestionView(project: Project, solution: Solution): Pair<SmallButton, EditorTextField> {
+        val smallButton = SmallButton("Try Solution ${solution.number}")
+        val editorTextField = editorTextField(project, solution.codeSnipped!!)
         return Pair(smallButton, editorTextField)
     }
 
-    private fun editorTextField(project: Project, text: String): @NotNull EditorTextField {
+    private fun editorTextField(project: Project, text: String): EditorTextField {
         val editorField = EditorTextFieldProvider.getInstance().getEditorField(
             JsonLanguage.INSTANCE, project, listOf(
                 EditorCustomization {
@@ -154,7 +154,8 @@ class SideSuggestionViewFactory : ToolWindowFactory, Disposable {
         return editorField
     }
 
-    override fun dispose() {
+    fun dispose() {
+        println("Dispose?")
 
     }
 }
