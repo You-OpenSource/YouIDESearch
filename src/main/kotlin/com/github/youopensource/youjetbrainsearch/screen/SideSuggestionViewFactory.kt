@@ -4,6 +4,7 @@ import com.github.youopensource.youjetbrainsearch.data.Solution
 import com.github.youopensource.youjetbrainsearch.services.ApiService
 import com.intellij.json.JsonFileType
 import com.intellij.json.JsonLanguage
+import com.intellij.lang.Language
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
@@ -15,8 +16,10 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.EditorCustomization
@@ -25,6 +28,7 @@ import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
+import com.intellij.util.ui.Centerizer
 import com.intellij.util.ui.JBUI
 
 class SideSuggestionViewFactory : ToolWindowFactory {
@@ -59,7 +63,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
         val content = contentFactory.createContent(jbScrollPane, "", false)
         toolWindow.contentManager.addContent(content)
 //        val service = project.service<MyProjectService>()
-        val disposable = ApiService.getSolutionObservable().subscribe {
+        val disposable = ApiService.getSolutionObservable().subscribe({
             if (!toolWindow.isVisible) {
 
             }
@@ -70,7 +74,12 @@ class SideSuggestionViewFactory : ToolWindowFactory {
                     println("Loading...")
                 }
             }
+        }, {
+            ApplicationManager.getApplication().invokeLater {
+                onError(it)
+            }
         }
+        )
 //        service.documentChangeTopic.subscribe(this, object : DocumentChangedEvent {
 //            override fun onDocumentChange(event: CaretEvent) {
 ////                if (lastChange == null) {
@@ -82,9 +91,13 @@ class SideSuggestionViewFactory : ToolWindowFactory {
     }
 
     private fun onSuggestion(solutionList: List<Solution>) {
-        dataProviderPanel!!.removeAll()
-        allButtons.clear()
-        allEditors.clear()
+        cleanLayout()
+        if(solutionList.isEmpty()) {
+            dataProviderPanel?.add(
+                Centerizer(JBLabel("Uh oh"),Centerizer.TYPE.VERTICAL)
+            )
+            return
+        }
         solutionList.map { solution ->
             val elements = createCodeSuggestionView(project!!, solution)
             allButtons.add(elements.first.apply {
@@ -92,11 +105,17 @@ class SideSuggestionViewFactory : ToolWindowFactory {
                     WriteCommandAction.runWriteCommandAction(
                         project
                     ) {
-                        // TODO add logic to handle current location
                         val editor = FileEditorManager.getInstance(project!!).selectedTextEditor!!
+                        val caret = editor.caretModel.primaryCaret
+                        var start = caret.selectionStart
+                        var end = caret.selectionEnd
+                        if(start == end) {
+                            start = caret.visualLineStart
+                            end = caret.visualLineEnd
+                        }
                         val document = editor.document
-                        document.deleteString(0, document.textLength)
-                        document.insertString(0, solution.codeSnipped!!)
+                        document.deleteString(start, end)
+                        document.insertString(start, solution.codeSnipped!!)
                     }
                 }
 
@@ -111,6 +130,19 @@ class SideSuggestionViewFactory : ToolWindowFactory {
 
     }
 
+    private fun cleanLayout() {
+        dataProviderPanel!!.removeAll()
+        allButtons.clear()
+        allEditors.clear()
+    }
+
+    private fun onError(throwable: Throwable) {
+        cleanLayout()
+        dataProviderPanel?.add(
+            Centerizer(JBLabel("Uh oh"))
+        )
+    }
+
 
     private fun createCodeSuggestionView(project: Project, solution: Solution): Pair<SmallButton, EditorTextField> {
         val smallButton = SmallButton("Try Solution ${solution.number}")
@@ -119,8 +151,11 @@ class SideSuggestionViewFactory : ToolWindowFactory {
     }
 
     private fun editorTextField(project: Project, text: String): EditorTextField {
+
+        val document = FileEditorManager.getInstance(project).selectedTextEditor!!.document
+        val language = PsiDocumentManager.getInstance(project).getPsiFile(document)?.language ?: Language.findLanguageByID("Python")!!
         val editorField = EditorTextFieldProvider.getInstance().getEditorField(
-            JsonLanguage.INSTANCE, project, listOf(
+            language, project, listOf(
                 EditorCustomization {
                     val editorSettings: EditorSettings = it.getSettings()
                     editorSettings.isLineNumbersShown = false
@@ -148,7 +183,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
             ))
         editorField.document = PsiManager.getInstance(project).findViewProvider(
             LightVirtualFile(
-                "test", JsonFileType.INSTANCE, text
+                "test", language, text
             )
         )!!.document
         return editorField

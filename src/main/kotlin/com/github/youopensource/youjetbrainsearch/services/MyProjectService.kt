@@ -10,7 +10,6 @@ import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.openapi.wm.ToolWindowFactoryEx
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.util.messages.Topic
 import io.reactivex.rxjava3.processors.BehaviorProcessor
@@ -39,12 +38,17 @@ class MyProjectService(project: Project) {
                     return
                 }
                 val line = event.caret!!.visualPosition.line
-                val start = editor.document.getLineStartOffset(line)
-                val end = editor.document.getLineEndOffset(line)
-                val text = editor.document.getText(TextRange.create(start, end))
+                val searchText: String
+                if(event.caret!!.selectedText != null) {
+                    searchText = event.caret!!.selectedText!!
+                } else {
+                    val start = event.caret!!.visualLineStart
+                    val end = event.caret!!.visualLineEnd
+                    searchText = editor.document.getText(TextRange.create(start, end))
+                }
                 ApiService.getRequestPublisher().onNext(
                     SolutionRequest(
-                        text
+                        searchText
                     )
                 )
                 publisher.onNext(event)
