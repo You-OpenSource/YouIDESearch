@@ -57,12 +57,12 @@ class MyProjectService(project: Project) {
                             searchText = searchText.trim().substring(2)
                         }
                     }
-                    val languageSpecifier = Regex("(?i)^(java|python).*")
-                    if(!searchText.trim().matches(languageSpecifier)) {
-                        val language = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.language?.id?.toLowerCase() ?: "python"
-                        searchText = "$language $searchText"
+                }
+                val languageSpecifier = Regex("^(?i)(java|python).*$")
+                if(!searchText.trim().matches(languageSpecifier)) {
+                    val language = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.language?.id?.toLowerCase() ?: "python"
+                    searchText = "$language ${searchText.trim()}"
 
-                    }
                 }
                 ApiService.getRequestPublisher().onNext(
                     SolutionRequest(
