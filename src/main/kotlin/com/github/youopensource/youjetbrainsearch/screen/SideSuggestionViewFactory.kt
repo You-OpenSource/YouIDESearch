@@ -94,7 +94,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
         cleanLayout()
         if(solutionList.isEmpty()) {
             dataProviderPanel?.add(
-                Centerizer(JBLabel("Uh oh"),Centerizer.TYPE.VERTICAL)
+                Centerizer(JBLabel("Start typing or select a line for code suggestions"),Centerizer.TYPE.HORIZONTAL)
             )
             return
         }

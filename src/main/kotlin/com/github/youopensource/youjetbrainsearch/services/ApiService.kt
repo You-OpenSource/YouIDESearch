@@ -40,10 +40,6 @@ object ApiService {
 
     }
 
-    public fun requestSolution(solutionRequest: SolutionRequest) {
-        requestPublisher.onNext(solutionRequest)
-    }
-
     public fun getRequestPublisher() = requestPublisher
     public fun getSolutionObservable(): Observable<SolutionResult> = publisher.toObservable()
 
