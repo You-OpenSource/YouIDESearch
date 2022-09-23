@@ -49,18 +49,19 @@ class MyProjectService(project: Project) {
                 }
                 val hashComment = searchText.trim().startsWith("#")
                 val javaComment = searchText.trim().startsWith("//")
-                if(hashComment || javaComment) {
+                if (hashComment || javaComment) {
                     if (hashComment) {
                         searchText = searchText.trim().substring(1)
-                    } else {
-                        if (javaComment) {
-                            searchText = searchText.trim().substring(2)
-                        }
+                    } else if (javaComment) {
+                        searchText = searchText.trim().substring(2)
                     }
+
                 }
                 val languageSpecifier = Regex("^(?i)(java|python).*$")
-                if(!searchText.trim().matches(languageSpecifier)) {
-                    val language = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.language?.id?.toLowerCase() ?: "python"
+                if (!searchText.trim().matches(languageSpecifier)) {
+                    val language =
+                        PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.language?.id?.toLowerCase()
+                            ?: "python"
                     searchText = "$language ${searchText.trim()}"
 
                 }

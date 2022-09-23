@@ -34,6 +34,10 @@ class Result {
     @Expose
     var codeSnippets: List<CodeSnippet>? = null
 
+    @SerializedName("snippet_code")
+    @Expose
+    var codeSnippet: String? = null
+
     @SerializedName("url")
     @Expose
     var url: String? = null

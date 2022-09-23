@@ -1,7 +1,9 @@
 package com.github.youopensource.youjetbrainsearch.screen
 
 import com.github.youopensource.youjetbrainsearch.data.Solution
+import com.github.youopensource.youjetbrainsearch.data.SolutionResult
 import com.github.youopensource.youjetbrainsearch.services.ApiService
+import com.intellij.icons.AllIcons
 import com.intellij.json.JsonFileType
 import com.intellij.json.JsonLanguage
 import com.intellij.lang.Language
@@ -21,15 +23,26 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
+import com.intellij.structuralsearch.plugin.ui.ConfigurationManager
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.panels.HorizontalLayout
+import com.intellij.ui.components.panels.VerticalLayout
 import com.intellij.ui.content.ContentFactory
+import com.intellij.util.PlatformIcons.SYMLINK_ICON
 import com.intellij.util.ui.Centerizer
+import com.intellij.util.ui.ImageUtil
+import com.intellij.util.ui.JBImageIcon
 import com.intellij.util.ui.JBUI
+import java.awt.Desktop
+import java.net.URI
+import javax.swing.JButton
+import javax.swing.JInternalFrame
 
 class SideSuggestionViewFactory : ToolWindowFactory {
 
@@ -62,11 +75,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
         val jbScrollPane = JBScrollPane(dataProviderPanel, 20, 31);
         val content = contentFactory.createContent(jbScrollPane, "", false)
         toolWindow.contentManager.addContent(content)
-//        val service = project.service<MyProjectService>()
         val disposable = ApiService.getSolutionObservable().subscribe({
-            if (!toolWindow.isVisible) {
-
-            }
             ApplicationManager.getApplication().invokeLater {
                 if (!it.loading) {
                     onSuggestion(it.solutions!!)
@@ -80,29 +89,18 @@ class SideSuggestionViewFactory : ToolWindowFactory {
             }
         }
         )
-//        service.documentChangeTopic.subscribe(this, object : DocumentChangedEvent {
-//            override fun onDocumentChange(event: CaretEvent) {
-////                if (lastChange == null) {
-////                } else {
-//                    onSuggestion(event)
-////                }
-//            }
-//        })
     }
 
     private fun onSuggestion(solutionList: List<Solution>) {
         cleanLayout()
         if(solutionList.isEmpty()) {
-            dataProviderPanel?.add(
-                Centerizer(JBLabel("Nothing found :("),Centerizer.TYPE.HORIZONTAL),
-                Centerizer(JBLabel("Start typing or select a line for code suggestions"),Centerizer.TYPE.HORIZONTAL),
-            )
             return
         }
         solutionList.map { solution ->
             val elements = createCodeSuggestionView(project!!, solution)
-            allButtons.add(elements.first.apply {
+            elements.button.apply {
                 addActionListener {
+                    ApiService.recordButtonClickedEvent("${solution.number}")
                     WriteCommandAction.runWriteCommandAction(
                         project
                     ) {
@@ -120,12 +118,12 @@ class SideSuggestionViewFactory : ToolWindowFactory {
                     }
                 }
 
-            })
-            allEditors.add(elements.second)
+            }
+            allEditors.add(elements.field)
             dataProviderPanel?.add(
-                elements.first
+                elements.panel
             )
-            dataProviderPanel?.add(elements.second)
+            dataProviderPanel?.add(elements.field)
         }
 
 
@@ -145,14 +143,24 @@ class SideSuggestionViewFactory : ToolWindowFactory {
     }
 
 
-    private fun createCodeSuggestionView(project: Project, solution: Solution): Pair<SmallButton, EditorTextField> {
+    private fun createCodeSuggestionView(project: Project, solution: Solution): SuggestionPanel {
         val smallButton = SmallButton("Try Solution ${solution.number}")
+        val horizontalPanel = JBPanelWithEmptyText(
+            HorizontalLayout(5)
+        )
+        horizontalPanel.add(smallButton)
+        if(solution.solutionLink != null) {
+            val jbLabel = JButton("Open in browser", AllIcons.Nodes.PpWeb)
+            jbLabel.addActionListener {
+                Desktop.getDesktop().browse(URI(solution.solutionLink));
+            }
+            horizontalPanel.add(jbLabel)
+        }
         val editorTextField = editorTextField(project, solution.codeSnipped!!)
-        return Pair(smallButton, editorTextField)
+        return SuggestionPanel(smallButton, horizontalPanel, editorTextField)
     }
 
     private fun editorTextField(project: Project, text: String): EditorTextField {
-
         val document = FileEditorManager.getInstance(project).selectedTextEditor!!.document
         val language = PsiDocumentManager.getInstance(project).getPsiFile(document)?.language ?: Language.findLanguageByID("Python")!!
         val editorField = EditorTextFieldProvider.getInstance().getEditorField(
@@ -176,10 +184,6 @@ class SideSuggestionViewFactory : ToolWindowFactory {
                     val c = scheme.getColor(EditorColors.READONLY_BACKGROUND_COLOR)
                     it.setBackgroundColor(c ?: scheme.defaultBackground)
                     it.setColorsScheme(scheme)
-                    //                it.setPrefixTextAndAttributes(
-                    //                    this.editorRequest.getCurrentLinePrefix(),
-                    //                    scheme.getAttributes(DefaultLanguageHighlighterColors.LINE_COMMENT)
-                    //                )
                 }
             ))
         editorField.document = PsiManager.getInstance(project).findViewProvider(
@@ -191,7 +195,13 @@ class SideSuggestionViewFactory : ToolWindowFactory {
     }
 
     fun dispose() {
-        println("Dispose?")
 
     }
 }
+
+
+data class SuggestionPanel(
+val button: SmallButton,
+val panel: JBPanelWithEmptyText,
+val field: EditorTextField
+)

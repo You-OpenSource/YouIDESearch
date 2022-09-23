@@ -20,11 +20,13 @@ object ApiService {
             }
             try {
                 val firstResult = RemoteYouRepository.getCodeSuggestions(it).blockingFirst()
-                val results = firstResult.searchResults!!.results!!.flatMap {
-                    it.codeSnippets!!
-                }.mapIndexed { id, result ->
-                    Solution(id, result.snippetCode)
-                }
+
+                val results = firstResult.searchResults!!.results!!
+                    .filter {
+                        it.codeSnippet != null
+                    }.mapIndexed { id, result ->
+                        Solution(id, result.codeSnippet, null, result.url)
+                    }
                 publisher.onNext(
                     SolutionResult(
                         solutions = results
@@ -32,12 +34,14 @@ object ApiService {
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
-                println("oops")
             }
         }, {
             publisher.onError(it)
         })
+    }
 
+    public fun recordButtonClickedEvent(buttonTitle: String) {
+        RemoteYouRepository.sendButtonClickedEvent(buttonTitle);
     }
 
     public fun getRequestPublisher() = requestPublisher

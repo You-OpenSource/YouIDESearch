@@ -9,6 +9,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <applicationService
                 serviceImplementation="com.github.youopensource.youjetbrainsearch.services.MyApplicationService"/>
+        <applicationService
+                serviceImplementation="com.redhat.devtools.intellij.telemetry.core.service.TelemetryServiceFactory"/>
         <projectService serviceImplementation="com.github.youopensource.youjetbrainsearch.services.MyProjectService"/>
     </extensions>
 
@@ -18,7 +20,12 @@
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="You.com" secondary="true" icon="AllIcons.General.Modified" anchor="right"
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.redhat.devtools.intellij.telemetry.ui.preferences.TelemetryConfigurable"
+                id="tools.preferences.youidesearch.telemetry"
+                displayName="YouIDESearch Telemetry"/>
+        <toolWindow id="You.com" secondary="true" icon="com.github.youopensource.youjetbrainsearch.YouIcons.YouLogo" anchor="right"
                     factoryClass="com.github.youopensource.youjetbrainsearch.screen.SideSuggestionViewFactory"/>
     </extensions>
 </idea-plugin>

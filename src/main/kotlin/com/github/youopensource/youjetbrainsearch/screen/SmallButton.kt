@@ -4,7 +4,7 @@ import javax.swing.JButton
 import java.awt.Insets
 import com.intellij.util.ui.JBUI
 
-internal class SmallButton(label: String) : JButton(label) {
+class SmallButton(label: String) : JButton(label) {
     override fun getInsets(insets: Insets): Insets {
         return insets
     }
