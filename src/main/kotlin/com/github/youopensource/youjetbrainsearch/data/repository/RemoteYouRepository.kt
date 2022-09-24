@@ -21,47 +21,56 @@ object RemoteYouRepository {
             return Observable.empty()
         }
         return Observable.create {
-            thread {
-                apiService.recordAnalyticsEvent(
-                    AnalyticsEvent(
-                        "intellij_user_search",
-                        EventData(
-                            request.codeLine
-                        ),
-                        DeviceProperties(
-                            0, 0, 0, 0, true
-                        )
-                    ),
-                ).execute()
-                println("Analytics executed")
-            }
-
-            val request: Call<CodeSuggestionApiResult?> = apiService.getApiResult(request.codeLine, 15, "codesnippets", 1)
-
+            val apiRequest: Call<CodeSuggestionApiResult?> =
+                apiService.getApiResult(request.codeLine, 15, "codesnippets", 1)
+            val telemetry = TelemetryService.instance.action("intellij_user_search")
+                .property("search.param", request.codeLine)
             try {
-                val body = request.execute().body()
+                telemetry.started()
+                val body = apiRequest.execute().body()
                 if (body != null) {
                     it.onNext(body)
                 }
-                it.onComplete()
+                telemetry.success()
             } catch (e: Exception) {
                 it.onError(e)
+                telemetry.error(e)
             }
+            telemetry.finished()
+            telemetry.send()
+            sendSearchEvent(request.codeLine)
+            it.onComplete()
         }
     }
 
-    fun sendButtonClickedEvent(buttonTitle: String) {
+    fun sendSearchEvent(codeLine: String) {
+        thread {
+            apiService.recordAnalyticsEvent(
+                AnalyticsEvent(
+                    "intellij_user_search",
+                    EventData(
+                        codeLine
+                    ),
+                    DeviceProperties(
+                        0, 0, 0, 0, true
+                    )
+                ),
+            ).execute()
+            println("Analytics executed")
+        }
+    }
+
+    fun sendButtonClickedEvent(solution: Solution) {
         thread {
             TelemetryService.instance.action("intellij_user_click")
-                .apply {
-                    //TODO more params for users
-                }
-                .send();
+                .property("solution.number", solution.number.toString())
+                .property("solution.codeSnippet", solution.codeSnippet)
+                .send()
             apiService.recordAnalyticsEvent(
                 AnalyticsEvent(
                     "intellij_user_click",
                     EventData(
-                        buttonTitle
+                        solution.number.toString()
                     ),
                     DeviceProperties(
                         0, 0, 0, 0, true

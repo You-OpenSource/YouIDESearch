@@ -1,16 +1,11 @@
 package com.github.youopensource.youjetbrainsearch.screen
 
 import com.github.youopensource.youjetbrainsearch.data.Solution
-import com.github.youopensource.youjetbrainsearch.data.SolutionResult
 import com.github.youopensource.youjetbrainsearch.services.ApiService
 import com.intellij.icons.AllIcons
-import com.intellij.json.JsonFileType
-import com.intellij.json.JsonLanguage
 import com.intellij.lang.Language
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.EditorSettings
 import com.intellij.openapi.editor.actions.IncrementalFindAction
 import com.intellij.openapi.editor.colors.EditorColors
@@ -18,12 +13,10 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
-import com.intellij.structuralsearch.plugin.ui.ConfigurationManager
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
@@ -32,17 +25,12 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.panels.HorizontalLayout
-import com.intellij.ui.components.panels.VerticalLayout
 import com.intellij.ui.content.ContentFactory
-import com.intellij.util.PlatformIcons.SYMLINK_ICON
 import com.intellij.util.ui.Centerizer
-import com.intellij.util.ui.ImageUtil
-import com.intellij.util.ui.JBImageIcon
 import com.intellij.util.ui.JBUI
 import java.awt.Desktop
 import java.net.URI
 import javax.swing.JButton
-import javax.swing.JInternalFrame
 
 class SideSuggestionViewFactory : ToolWindowFactory {
 
@@ -100,7 +88,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
             val elements = createCodeSuggestionView(project!!, solution)
             elements.button.apply {
                 addActionListener {
-                    ApiService.recordButtonClickedEvent("${solution.number}")
+                    ApiService.recordButtonClickedEvent(solution)
                     WriteCommandAction.runWriteCommandAction(
                         project
                     ) {
@@ -114,7 +102,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
                         }
                         val document = editor.document
                         document.deleteString(start, end)
-                        document.insertString(start, solution.codeSnipped!!)
+                        document.insertString(start, solution.codeSnippet!!)
                     }
                 }
 
@@ -156,7 +144,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
             }
             horizontalPanel.add(jbLabel)
         }
-        val editorTextField = editorTextField(project, solution.codeSnipped!!)
+        val editorTextField = editorTextField(project, solution.codeSnippet!!)
         return SuggestionPanel(smallButton, horizontalPanel, editorTextField)
     }
 

@@ -40,8 +40,8 @@ object ApiService {
         })
     }
 
-    public fun recordButtonClickedEvent(buttonTitle: String) {
-        RemoteYouRepository.sendButtonClickedEvent(buttonTitle);
+    public fun recordButtonClickedEvent(solution: Solution) {
+        RemoteYouRepository.sendButtonClickedEvent(solution);
     }
 
     public fun getRequestPublisher() = requestPublisher
