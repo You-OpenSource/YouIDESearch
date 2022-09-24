@@ -2,7 +2,6 @@ package com.github.youopensource.youjetbrainsearch.data.repository
 
 import com.github.youopensource.youjetbrainsearch.data.*
 import com.github.youopensource.youjetbrainsearch.services.TelemetryService
-import com.intellij.structuralsearch.plugin.ui.ConfigurationManager
 import io.reactivex.rxjava3.core.Observable
 import retrofit2.Call
 import retrofit2.Retrofit
@@ -14,7 +13,7 @@ object RemoteYouRepository {
         .baseUrl("https://you.com/api/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
-    private val apiService: APIService = retrofit.create(APIService::class.java);
+    private val apiService: APIService = retrofit.create(APIService::class.java)
 
     fun getCodeSuggestions(request: SolutionRequest): Observable<CodeSuggestionApiResult> {
         if (request.codeLine == null) {
@@ -43,7 +42,7 @@ object RemoteYouRepository {
         }
     }
 
-    fun sendSearchEvent(codeLine: String) {
+    private fun sendSearchEvent(codeLine: String) {
         thread {
             apiService.recordAnalyticsEvent(
                 AnalyticsEvent(

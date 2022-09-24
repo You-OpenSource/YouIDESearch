@@ -10,6 +10,4 @@ class AnalyticsEvent(
     @Expose var eventName: String?, @SerializedName("eventData")
     @Expose var eventData: EventData?, @SerializedName("deviceProperties")
     @Expose var deviceProperties: DeviceProperties?
-) {
-
-}
+)

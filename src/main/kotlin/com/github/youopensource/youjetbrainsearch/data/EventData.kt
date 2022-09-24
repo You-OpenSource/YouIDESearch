@@ -8,6 +8,4 @@ import javax.annotation.Generated
 class EventData(
     @SerializedName("query")
     @Expose var query: String?
-) {
-
-}
+)

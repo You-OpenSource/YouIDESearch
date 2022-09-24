@@ -1,8 +1,8 @@
 package com.github.youopensource.youjetbrainsearch.screen
 
-import javax.swing.JButton
-import java.awt.Insets
 import com.intellij.util.ui.JBUI
+import java.awt.Insets
+import javax.swing.JButton
 
 class SmallButton(label: String) : JButton(label) {
     override fun getInsets(insets: Insets): Insets {

@@ -1,4 +1,4 @@
-package com.github.youopensource.youjetbrainsearch.listeners
+package com.github.youopensource.youjetbrainsearch.services.listeners
 
 import com.github.youopensource.youjetbrainsearch.services.MyProjectService
 import com.intellij.openapi.components.service

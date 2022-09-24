@@ -12,6 +12,4 @@ class DeviceProperties(
     @Expose var viewportWidth: Int?, @SerializedName("viewport_height")
     @Expose var viewportHeight: Int?, @SerializedName("beacon_active")
     @Expose var beaconActive: Boolean?
-) {
-
-}
+)

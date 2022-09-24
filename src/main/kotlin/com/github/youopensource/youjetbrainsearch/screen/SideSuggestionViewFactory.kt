@@ -6,6 +6,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.lang.Language
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.EditorSettings
 import com.intellij.openapi.editor.actions.IncrementalFindAction
 import com.intellij.openapi.editor.colors.EditorColors
@@ -33,12 +34,9 @@ import java.net.URI
 import javax.swing.JButton
 
 class SideSuggestionViewFactory : ToolWindowFactory {
-
-    private val allButtons: ArrayList<SmallButton> = arrayListOf();
-    private val allEditors: ArrayList<EditorTextField> = arrayListOf();
+    private val LOG: Logger = Logger.getInstance(this.javaClass)
     private var dataProviderPanel: DataProviderPanel? = null
     private var project: Project? = null
-    private var lastChange: DocumentEvent? = null
 
     /**
      * Create the tool window content.
@@ -47,100 +45,74 @@ class SideSuggestionViewFactory : ToolWindowFactory {
      * @param toolWindow current tool window
      */
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        println("${toolWindow.id} is this id");
+        LOG.debug("Creating toolwindow with id ${toolWindow.id}")
         this.project = project
-
         val contentFactory = ContentFactory.SERVICE.getInstance()
 
         dataProviderPanel = DataProviderPanel().apply {
-            setFocusCycleRoot(true)
-            setBorder(JBUI.Borders.empty(5, 10, 10, 15))
+            isFocusCycleRoot = true
+            border = JBUI.Borders.empty(5, 10, 10, 15)
         }
         dataProviderPanel!!.add(
             JBLabel("Loading...")
         )
 
-        val jbScrollPane = JBScrollPane(dataProviderPanel, 20, 31);
+        val jbScrollPane = JBScrollPane(dataProviderPanel, 20, 31)
         val content = contentFactory.createContent(jbScrollPane, "", false)
         toolWindow.contentManager.addContent(content)
-        val disposable = ApiService.getSolutionObservable().subscribe({
+        ApiService.getSolutionObservable().subscribe({
             ApplicationManager.getApplication().invokeLater {
-                if (!it.loading) {
-                    onSuggestion(it.solutions!!)
-                } else {
-                    println("Loading...")
-                }
+                onSuggestion(it.solutions!!)
             }
         }, {
             ApplicationManager.getApplication().invokeLater {
                 onError(it)
             }
-        }
-        )
+        })
     }
 
     private fun onSuggestion(solutionList: List<Solution>) {
         cleanLayout()
-        if(solutionList.isEmpty()) {
+        if (solutionList.isEmpty()) {
+            LOG.debug("No solutions were found, skipping UI")
             return
         }
         solutionList.map { solution ->
             val elements = createCodeSuggestionView(project!!, solution)
-            elements.button.apply {
-                addActionListener {
-                    ApiService.recordButtonClickedEvent(solution)
-                    WriteCommandAction.runWriteCommandAction(
-                        project
-                    ) {
-                        val editor = FileEditorManager.getInstance(project!!).selectedTextEditor!!
-                        val caret = editor.caretModel.primaryCaret
-                        var start = caret.selectionStart
-                        var end = caret.selectionEnd
-                        if(start == end) {
-                            start = caret.visualLineStart
-                            end = caret.visualLineEnd
-                        }
-                        val document = editor.document
-                        document.deleteString(start, end)
-                        document.insertString(start, solution.codeSnippet!!)
-                    }
-                }
-
-            }
-            allEditors.add(elements.field)
             dataProviderPanel?.add(
                 elements.panel
             )
             dataProviderPanel?.add(elements.field)
         }
-
-
     }
 
     private fun cleanLayout() {
+        LOG.debug("Cleaning layout")
         dataProviderPanel!!.removeAll()
-        allButtons.clear()
-        allEditors.clear()
     }
 
     private fun onError(throwable: Throwable) {
+        LOG.error(throwable)
         cleanLayout()
         dataProviderPanel?.add(
-            Centerizer(JBLabel("Uh oh"))
+            Centerizer(JBLabel("Error occurred"))
         )
     }
 
 
     private fun createCodeSuggestionView(project: Project, solution: Solution): SuggestionPanel {
-        val smallButton = SmallButton("Try Solution ${solution.number}")
-        val horizontalPanel = JBPanelWithEmptyText(
-            HorizontalLayout(5)
-        )
-        horizontalPanel.add(smallButton)
-        if(solution.solutionLink != null) {
+        val smallButton = SmallButton("Try Solution ${solution.number}").apply {
+            addActionListener {
+                onButtonClicked(solution, project)
+            }
+        }
+        val horizontalPanel = JBPanelWithEmptyText(HorizontalLayout(5)).apply {
+            add(smallButton)
+        }
+        if (solution.solutionLink != null) {
             val jbLabel = JButton("Open in browser", AllIcons.Nodes.PpWeb)
             jbLabel.addActionListener {
-                Desktop.getDesktop().browse(URI(solution.solutionLink));
+                Desktop.getDesktop().browse(URI(solution.solutionLink))
             }
             horizontalPanel.add(jbLabel)
         }
@@ -148,13 +120,42 @@ class SideSuggestionViewFactory : ToolWindowFactory {
         return SuggestionPanel(smallButton, horizontalPanel, editorTextField)
     }
 
+    private fun onButtonClicked(
+        solution: Solution,
+        project: Project
+    ) {
+        ApiService.recordButtonClickedEvent(solution)
+        WriteCommandAction.runWriteCommandAction(
+            project
+        ) {
+            val editor = FileEditorManager.getInstance(project).selectedTextEditor!!
+            val caret = editor.caretModel.primaryCaret
+            var start = caret.selectionStart
+            var end = caret.selectionEnd
+            if (start == end) {
+                start = caret.visualLineStart
+                end = caret.visualLineEnd
+            }
+            val document = editor.document
+            document.deleteString(start, end)
+            document.insertString(start, solution.codeSnippet!!)
+        }
+    }
+
     private fun editorTextField(project: Project, text: String): EditorTextField {
         val document = FileEditorManager.getInstance(project).selectedTextEditor!!.document
-        val language = PsiDocumentManager.getInstance(project).getPsiFile(document)?.language ?: Language.findLanguageByID("Python")!!
+        val language = PsiDocumentManager.getInstance(project).getPsiFile(document)?.language
+            ?: Language.findLanguageByID("Python")!!
         val editorField = EditorTextFieldProvider.getInstance().getEditorField(
             language, project, listOf(
                 EditorCustomization {
-                    val editorSettings: EditorSettings = it.getSettings()
+                    val editorSettings: EditorSettings = it.settings
+                    it.isViewer = true
+                    it.isRendererMode = false
+                    it.setCaretVisible(false)
+                    it.setCaretEnabled(false)
+                    val scheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
+                    val c = scheme.getColor(EditorColors.READONLY_BACKGROUND_COLOR)
                     editorSettings.isLineNumbersShown = false
                     editorSettings.isLineMarkerAreaShown = false
                     editorSettings.isAutoCodeFoldingEnabled = false
@@ -163,20 +164,14 @@ class SideSuggestionViewFactory : ToolWindowFactory {
                     editorSettings.isBlinkCaret = false
                     editorSettings.isRightMarginShown = false
                     editorSettings.isShowIntentionBulb = false
-                    it.setViewer(true)
-                    it.setCaretVisible(false)
-                    it.setCaretEnabled(false)
                     it.putUserData(IncrementalFindAction.SEARCH_DISABLED, true)
-                    it.setRendererMode(false)
-                    val scheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
-                    val c = scheme.getColor(EditorColors.READONLY_BACKGROUND_COLOR)
-                    it.setBackgroundColor(c ?: scheme.defaultBackground)
-                    it.setColorsScheme(scheme)
+                    it.backgroundColor = c ?: scheme.defaultBackground
+                    it.colorsScheme = scheme
                 }
             ))
         editorField.document = PsiManager.getInstance(project).findViewProvider(
             LightVirtualFile(
-                "test", language, text
+                "ignored", language, text
             )
         )!!.document
         return editorField
@@ -186,10 +181,3 @@ class SideSuggestionViewFactory : ToolWindowFactory {
 
     }
 }
-
-
-data class SuggestionPanel(
-val button: SmallButton,
-val panel: JBPanelWithEmptyText,
-val field: EditorTextField
-)

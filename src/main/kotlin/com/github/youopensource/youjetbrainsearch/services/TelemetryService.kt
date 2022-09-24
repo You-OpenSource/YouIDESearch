@@ -4,9 +4,6 @@ import com.redhat.devtools.intellij.telemetry.core.service.TelemetryMessageBuild
 
 object TelemetryService {
 
-    init {
-    }
-
     val instance: TelemetryMessageBuilder by lazy {
         TelemetryMessageBuilder(TelemetryService::class.java.classLoader)
     }

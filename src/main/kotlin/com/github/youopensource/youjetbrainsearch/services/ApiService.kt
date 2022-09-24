@@ -4,22 +4,24 @@ import com.github.youopensource.youjetbrainsearch.data.Solution
 import com.github.youopensource.youjetbrainsearch.data.SolutionRequest
 import com.github.youopensource.youjetbrainsearch.data.SolutionResult
 import com.github.youopensource.youjetbrainsearch.data.repository.RemoteYouRepository
+import com.intellij.openapi.diagnostic.Logger
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.processors.BehaviorProcessor
 import java.util.concurrent.TimeUnit
 
 object ApiService {
+    private val LOG: Logger = Logger.getInstance(this.javaClass)
     private val publisher: BehaviorProcessor<SolutionResult> = BehaviorProcessor.create()
     private val requestPublisher: BehaviorProcessor<SolutionRequest> = BehaviorProcessor.create()
 
     init {
-        requestPublisher.debounce(1, TimeUnit.SECONDS).subscribe({
-            if (it.codeLine.isNullOrBlank()) {
-                println("Skipping empty line")
+        requestPublisher.debounce(1, TimeUnit.SECONDS).subscribe({ request ->
+            if (request.codeLine.isNullOrBlank()) {
+                LOG.debug("Skipped request since request has no code present")
                 return@subscribe
             }
             try {
-                val firstResult = RemoteYouRepository.getCodeSuggestions(it).blockingFirst()
+                val firstResult = RemoteYouRepository.getCodeSuggestions(request).blockingFirst()
 
                 val results = firstResult.searchResults!!.results!!
                     .filter {
@@ -33,19 +35,19 @@ object ApiService {
                     )
                 )
             } catch (e: Exception) {
-                e.printStackTrace()
+                LOG.error(e)
             }
         }, {
             publisher.onError(it)
         })
     }
 
-    public fun recordButtonClickedEvent(solution: Solution) {
-        RemoteYouRepository.sendButtonClickedEvent(solution);
+    fun recordButtonClickedEvent(solution: Solution) {
+        RemoteYouRepository.sendButtonClickedEvent(solution)
     }
 
-    public fun getRequestPublisher() = requestPublisher
-    public fun getSolutionObservable(): Observable<SolutionResult> = publisher.toObservable()
+    fun getRequestPublisher() = requestPublisher
+    fun getSolutionObservable(): Observable<SolutionResult> = publisher.toObservable()
 
 
 }
