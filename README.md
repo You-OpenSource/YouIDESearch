@@ -1,32 +1,21 @@
-# YouJetbrainSearch
+# YouIDESearch
 
 ![Build](https://github.com/You-OpenSource/YouJetbrainSearch/workflows/Build/badge.svg)
 [![Version](https://img.shields.io/jetbrains/plugin/v/com.github.youopensource.youidesearch.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/com.github.youopensource.youidesearch.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
 
-## Template ToDo list
-- [x] Create a new [IntelliJ Platform Plugin Template][template] project.
-- [ ] Get familiar with the [template documentation][template].
-- [ ] Verify the [pluginGroup](./gradle.properties), [plugin ID](./src/main/resources/META-INF/plugin.xml) and [sources package](./src/main/kotlin).
-- [ ] Review the [Legal Agreements](https://plugins.jetbrains.com/docs/marketplace/legal-agreements.html).
-- [ ] [Publish a plugin manually](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate) for the first time.
-- [ ] Set the Plugin ID in the above README badges.
-- [ ] Set the [Deployment Token](https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html).
-- [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
 
 <!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+YouIDESearch is a Intellij IDEA extension to search with [code.you.com](https://www.you.com/?utm_source=opensource&utm_medium=GitHub&utm_campaign=youidesearch).
 
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
-
-To keep everything working, do not remove `<!-- ... -->` sections. 
+Code.you.com is a developer-focused search engine powered by You.com. You.com is a search engine that summarizes the best parts of the Internet for you! To learn more about you.com, see our [FAQ](https://about.you.com/hc-category/faq/?utm_source=opensource&utm_medium=GitHub&utm_campaign=youidesearch).
 <!-- Plugin description end -->
 
 ## Installation
 
 - Using IDE built-in plugin system:
   
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "YouJetbrainSearch"</kbd> >
+  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "YouIDESearch"</kbd> >
   <kbd>Install Plugin</kbd>
   
 - Manually:
@@ -34,8 +23,7 @@ To keep everything working, do not remove `<!-- ... -->` sections.
   Download the [latest release](https://github.com/You-OpenSource/YouJetbrainSearch/releases/latest) and install it manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
 
+## How to use
 
----
-Plugin based on the [IntelliJ Platform Plugin Template][template].
-
-[template]: https://github.com/JetBrains/intellij-platform-plugin-template
+After the plugin is installed, You.com icon should be available on the right panel
+(might be hidden if you have too many plugins installed). 
