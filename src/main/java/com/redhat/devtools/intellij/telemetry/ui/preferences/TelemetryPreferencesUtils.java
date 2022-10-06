@@ -46,8 +46,8 @@ public class TelemetryPreferencesUtils {
         component.setVerticalTextPosition(SwingConstants.TOP);
         component.setFocusable(false);
         component.setText(toStyledHtml(
-                "<br/>Help Red Hat improve " + plugin + " by sending anonymous usage data."
-                        + " You can enable or disable it in the <a href=\"\">preferences for Red Hat Telemetry</a>."
+                "<br/>Help You.com improve " + plugin + " by sending anonymous usage data."
+                        + " You can enable or disable it in the <a href=\"\">preferences for You.com Telemetry</a>."
                 , 70,
                 component));
         return component;
