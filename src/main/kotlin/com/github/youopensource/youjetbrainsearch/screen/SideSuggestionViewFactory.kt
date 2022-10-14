@@ -29,6 +29,7 @@ import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.ui.Centerizer
 import com.intellij.util.ui.JBUI
+import io.reactivex.rxjava3.disposables.Disposable
 import java.awt.Desktop
 import java.net.URI
 import javax.swing.JButton
@@ -37,6 +38,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
     private val LOG: Logger = Logger.getInstance(this.javaClass)
     private var dataProviderPanel: DataProviderPanel? = null
     private var project: Project? = null
+    private var disposable: Disposable? = null
 
     /**
      * Create the tool window content.
@@ -47,6 +49,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         LOG.debug("Creating toolwindow with id ${toolWindow.id}")
         this.project = project
+        disposable?.dispose()
         val contentFactory = ContentFactory.SERVICE.getInstance()
 
         dataProviderPanel = DataProviderPanel().apply {
@@ -60,7 +63,10 @@ class SideSuggestionViewFactory : ToolWindowFactory {
         val jbScrollPane = JBScrollPane(dataProviderPanel, 20, 31)
         val content = contentFactory.createContent(jbScrollPane, "", false)
         toolWindow.contentManager.addContent(content)
-        ApiService.getSolutionObservable().subscribe({
+        disposable = ApiService.getSolutionObservable().subscribe({
+            if (project.isDisposed) {
+                return@subscribe
+            }
             ApplicationManager.getApplication().invokeLater {
                 onSuggestion(it.solutions!!)
             }
@@ -70,6 +76,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
             }
         })
     }
+
 
     private fun onSuggestion(solutionList: List<Solution>) {
         cleanLayout()

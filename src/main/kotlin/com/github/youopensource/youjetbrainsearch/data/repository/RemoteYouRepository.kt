@@ -32,7 +32,6 @@ object RemoteYouRepository {
                 }
                 telemetry.success()
             } catch (e: Exception) {
-                it.onError(e)
                 telemetry.error(e)
             }
             telemetry.finished()

@@ -22,6 +22,9 @@ class MyProjectService(project: Project) {
 
         EditorFactory.getInstance().eventMulticaster.addCaretListener(object : CaretListener {
             override fun caretPositionChanged(event: CaretEvent) {
+                if(project.isDisposed) {
+                    return
+                }
                 val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("You.com")
                 val editor = event.editor
                 if (toolWindow?.isVisible == false || editor.editorKind != EditorKind.MAIN_EDITOR) {
