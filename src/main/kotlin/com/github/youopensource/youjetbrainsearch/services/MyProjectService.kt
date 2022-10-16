@@ -60,7 +60,7 @@ class MyProjectService(project: Project) {
         val languageSpecifier = Regex("^(?i)(java|python).*$")
         if (!searchText.trim().matches(languageSpecifier)) {
             val language =
-                PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.language?.id?.toLowerCase()
+                PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.language?.id?.lowercase()
                     ?: "python"
             commandText = "$language ${commandText.trim()}"
         }
