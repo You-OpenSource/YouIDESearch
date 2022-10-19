@@ -34,6 +34,8 @@ object ApiService {
                         solutions = results
                     )
                 )
+            } catch(ignored: NoSuchElementException) {
+
             } catch (e: Exception) {
                 LOG.error(e)
             }
