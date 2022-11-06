@@ -22,7 +22,7 @@ class MyProjectService(project: Project) {
 
         EditorFactory.getInstance().eventMulticaster.addCaretListener(object : CaretListener {
             override fun caretPositionChanged(event: CaretEvent) {
-                if(project.isDisposed) {
+                if (project.isDisposed) {
                     return
                 }
                 val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("You.com")
@@ -31,17 +31,26 @@ class MyProjectService(project: Project) {
                     return
                 }
                 val caret = event.caret!!
-                var searchText: String = if (caret.selectedText != null) {
-                    caret.selectedText!!
+                var searchText: String
+                if (caret.selectedText != null) {
+                    searchText = caret.selectedText!!
                 } else {
+                    val onlySelectionSearch = YouPreferences.instance.state.onlySelectionSearch
+                    if (onlySelectionSearch) {
+                        return
+                    }
                     val start = caret.visualLineStart
                     val end = caret.visualLineEnd
-                    editor.document.getText(TextRange.create(start, end))
+                    searchText = editor.document.getText(TextRange.create(start, end))
+                }
+                if (searchText.length < 3) {
+                    return
                 }
                 searchText = wrapCommand(searchText, project, editor)
                 ApiService.getRequestPublisher().onNext(
                     SolutionRequest(
-                        searchText
+                        searchText,
+                        getProjectLanguage(project, editor)
                     )
                 )
                 publisher.onNext(event)
@@ -60,10 +69,17 @@ class MyProjectService(project: Project) {
         val languageSpecifier = Regex("^(?i)(java|python).*$")
         if (!searchText.trim().matches(languageSpecifier)) {
             val language =
-                PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.language?.id?.toLowerCase()
-                    ?: "python"
+                getProjectLanguage(project, editor)
             commandText = "$language ${commandText.trim()}"
         }
         return commandText
+    }
+
+    private fun getProjectLanguage(
+        project: Project,
+        editor: Editor
+    ): String {
+        return PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.language?.id?.toLowerCase()
+            ?: "python"
     }
 }

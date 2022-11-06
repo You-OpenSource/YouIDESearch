@@ -11,6 +11,7 @@
         <applicationService
                 serviceImplementation="com.redhat.devtools.intellij.telemetry.core.service.TelemetryServiceFactory"/>
         <projectService serviceImplementation="com.github.youopensource.youjetbrainsearch.services.MyProjectService"/>
+        <applicationService serviceImplementation="com.github.youopensource.youjetbrainsearch.services.YouPreferences"/>
     </extensions>
 
     <applicationListeners>
