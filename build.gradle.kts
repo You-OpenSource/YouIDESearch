@@ -34,8 +34,8 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("io.reactivex.rxjava3:rxkotlin:3.0.1")
-    implementation("com.segment.analytics.java:analytics:2.1.1")
-    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("com.segment.analytics.java:analytics:3.3.1")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
 }
 
 // Configure Gradle IntelliJ Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
