@@ -9,6 +9,6 @@ import com.intellij.openapi.project.ProjectManagerListener
 internal class MyProjectManagerListener : ProjectManagerListener {
 
     override fun projectOpened(project: Project) {
-        project.service<MyProjectService>()
+        project.getService(MyProjectService::class.java)
     }
 }

@@ -1,17 +1,17 @@
 package com.github.youopensource.youjetbrainsearch.screen
 
 import com.github.youopensource.youjetbrainsearch.data.Solution
+import com.github.youopensource.youjetbrainsearch.data.SolutionResult
 import com.github.youopensource.youjetbrainsearch.services.ApiService
+import com.github.youopensource.youjetbrainsearch.services.YouPreferences
 import com.intellij.icons.AllIcons
 import com.intellij.lang.Language
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.EditorSettings
 import com.intellij.openapi.editor.actions.IncrementalFindAction
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
-import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -22,6 +22,7 @@ import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
+import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.components.JBScrollPane
@@ -31,8 +32,11 @@ import com.intellij.util.ui.Centerizer
 import com.intellij.util.ui.JBUI
 import io.reactivex.rxjava3.disposables.Disposable
 import java.awt.Desktop
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import java.net.URI
 import javax.swing.JButton
+import javax.swing.JCheckBox
 
 class SideSuggestionViewFactory : ToolWindowFactory {
     private val LOG: Logger = Logger.getInstance(this.javaClass)
@@ -57,7 +61,10 @@ class SideSuggestionViewFactory : ToolWindowFactory {
             border = JBUI.Borders.empty(5, 10, 10, 15)
         }
         dataProviderPanel!!.add(
-            JBLabel("Loading...")
+            createSettingsView("python")
+        )
+        dataProviderPanel!!.add(
+            JBLabel("Move caret or select text for suggestions")
         )
 
         val jbScrollPane = JBScrollPane(dataProviderPanel, 20, 31)
@@ -68,7 +75,7 @@ class SideSuggestionViewFactory : ToolWindowFactory {
                 return@subscribe
             }
             ApplicationManager.getApplication().invokeLater {
-                onSuggestion(it.solutions!!)
+                onSuggestion(it)
             }
         }, {
             ApplicationManager.getApplication().invokeLater {
@@ -78,10 +85,14 @@ class SideSuggestionViewFactory : ToolWindowFactory {
     }
 
 
-    private fun onSuggestion(solutionList: List<Solution>) {
+    private fun onSuggestion(result: SolutionResult) {
+        val solutionList = result.solutions!!
         cleanLayout()
+        dataProviderPanel?.add(createSettingsView(result.language!!))
         if (solutionList.isEmpty()) {
-            LOG.debug("No solutions were found, skipping UI")
+            val reason = "No solutions were found, try another selection"
+            dataProviderPanel?.add(JBLabel(reason))
+            LOG.debug(reason)
             return
         }
         solutionList.map { solution ->
@@ -107,9 +118,22 @@ class SideSuggestionViewFactory : ToolWindowFactory {
     }
 
 
-    private fun createCodeSuggestionView(project: Project, solution: Solution): SuggestionPanel {
-        val smallButton = SmallButton("Try Solution ${solution.number}").apply {
+    private fun createSettingsView(language: String): ToolbarPanel {
+        val panel = ToolbarPanel()
+        val onlySelectionSearch = YouPreferences.instance.state.onlySelectionSearch
+        panel.add(CheckBox("Only search on selection ($language)", onlySelectionSearch, "If enabled").apply {
             addActionListener {
+                YouPreferences.instance.state.onlySelectionSearch = this.isSelected
+            }
+        })
+        return panel
+    }
+
+    private fun createCodeSuggestionView(project: Project, solution: Solution): SuggestionPanel {
+        val smallButton = SmallButton("Copy Solution ${solution.number}").apply {
+            addActionListener {
+                this.text = "Solution copied!"
+                this.icon = AllIcons.Actions.Checked
                 onButtonClicked(solution, project)
             }
         }
@@ -132,21 +156,8 @@ class SideSuggestionViewFactory : ToolWindowFactory {
         project: Project
     ) {
         ApiService.recordButtonClickedEvent(solution)
-        WriteCommandAction.runWriteCommandAction(
-            project
-        ) {
-            val editor = FileEditorManager.getInstance(project).selectedTextEditor!!
-            val caret = editor.caretModel.primaryCaret
-            var start = caret.selectionStart
-            var end = caret.selectionEnd
-            if (start == end) {
-                start = caret.visualLineStart
-                end = caret.visualLineEnd
-            }
-            val document = editor.document
-            document.deleteString(start, end)
-            document.insertString(start, solution.codeSnippet!!)
-        }
+        Toolkit.getDefaultToolkit().systemClipboard
+            .setContents(StringSelection(solution.codeSnippet!!), null)
     }
 
     private fun editorTextField(project: Project, text: String): EditorTextField {
